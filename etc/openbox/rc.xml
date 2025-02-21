@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openbox_config xmlns="http://openbox.org/3.4/rc"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                xsi:schemaLocation="http://openbox.org/3.4/rc
+                                    http://openbox.org/3.4/rc.xsd">
+
+  <!-- ... other configurations ... -->
+
+  <!-- Disable mouse bindings for the menu -->
+  <mouse>
+    <context name="Desktop">
+      <mousebind button="Right" action="Press">
+        <action name="Unbind"/>
+      </mousebind>
+      <mousebind button="Middle" action="Press">
+        <action name="Unbind"/>
+      </mousebind>
+    </context>
+  </mouse>
+
+  <!-- Disable keybindings for the menu -->
+  <keyboard>
+    <!-- Remove any keybindings that call the menu -->
+    <!-- For example, if you have a keybind like this, remove or comment it: -->
+-
+        <keybind key="W-space">
+        <action name="ShowMenu">
+        <menu>client-menu</menu>
+        </action>
+        </keybind>
+
+  </keyboard>
+
+</openbox_config>

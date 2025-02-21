@@ -3,15 +3,58 @@
 ;; Modify it as you see fit and instantiate the changes by running:
 ;;
 ;;   guix system reconfigure /etc/config.scm
-;;
 
 (use-modules (gnu)
-             (guix)
+             (gnu home)
+             (gnu home services)
+             (gnu services guix)
              (guix-systole services dicomd-service)
+             (guix-systole packages wallpapers)
+             (guix-systole artwork)
+             (guix)
              (srfi srfi-1))
-(use-service-modules desktop mcron networking ssh xorg sddm)
-(use-package-modules bootloaders fonts image-processing openbox
-                     package-management xdisorg xfce xorg)
+
+(use-service-modules desktop mcron networking spice ssh xorg sddm)
+(use-package-modules bootloaders fonts openbox xfce lxde image-processing
+                     package-management xdisorg xorg)
+
+(define dicom-store-desktop
+  (local-file "etc/misc/dicom-store.desktop"))
+
+(define pcmanfm-config
+  (local-file "etc/pcmanfm.conf"))
+
+(define libfm-config
+  (local-file "etc/libfm.conf"))
+
+(define nftables-config
+  (local-file "etc/misc/nftables.conf"))
+
+(define rc-xml
+  (local-file "etc/openbox/rc.xml"))
+
+(define menu-xml
+  (local-file "etc/openbox/menu.xml"))
+
+(define autostart-script
+  (local-file "etc/openbox/autostart"))
+
+(define guest-home
+  (home-environment
+    (services
+     (cons*
+      (service
+       home-xdg-configuration-files-service-type
+       `(
+         ;; ("openbox/rc.xml" ,rc-xml)
+         ;; ("openbox/menu.xml" ,menu-xml)
+         ("openbox/autostart" ,autostart-script)
+         ("libfm/libfm.conf" ,libfm-config)
+         ("pcmanfm/default/pcmanfm.conf" ,pcmanfm-config)))
+      (service
+       home-files-service-type
+       `(("Desktop/dicom-store.desktop" ,(local-file "etc/dicom-store.desktop"))))
+      %base-home-services))))
 
 (define vm-image-motd (plain-file "motd" "
 \x1b[1;37mThis is the GNU system.  Welcome!\x1b[0m
@@ -27,55 +70,6 @@ Run '\x1b[1;37minfo guix\x1b[0m' to browse documentation.
 \x1b[1;33mConsider setting a password for the 'root' and 'guest' \
 accounts.\x1b[0m
 "))
-
-(define %dicom-nftables-ruleset
-  (plain-file "nftables.conf"
-    "
-# Default firewall rules
-table inet filter {
-  chain input {
-    type filter hook input priority 0; policy drop;
-
-    # Accept established and related connections
-    ct state established,related accept
-
-    # Allow loopback traffic
-    iifname lo accept
-
-    # Accept ICMP
-    ip protocol icmp accept
-    ip6 nexthdr icmpv6 accept
-
-    # Allow SSH
-    tcp dport ssh accept
-
-    # Allow DICOM on port 104 and 1104
-    tcp dport { 104, 1104 } accept
-
-    # Reject other traffic
-    reject with icmpx type port-unreachable
-  }
-  chain forward {
-    type filter hook forward priority 0; policy drop;
-  }
-  chain output {
-    type filter hook output priority 0; policy accept;
-  }
-}
-
-# Port redirection from 104 to 1104
-table ip nat {
-  chain prerouting {
-    type nat hook prerouting priority 0; policy accept;
-    tcp dport 104 redirect to :1104
-  }
-  chain output {
-    type nat hook output priority 0; policy accept;
-    tcp dport 104 redirect to :1104
-  }
-}
-"))
-
 
 (operating-system
   (host-name "gnu")
@@ -118,32 +112,43 @@ root ALL=(ALL) ALL
 %wheel ALL=NOPASSWD: ALL\n"))
 
   (packages
-   (append (list dcmtk font-bitstream-vera openbox)
+   (append (list dcmtk
+                 font-bitstream-vera
+                 pcmanfm
+                 openbox
+                 xfce4-terminal
+                 thunar
+                 systole-wallpapers
+                 ;; Auto-started script providing SPICE dynamic resizing for
+                 ;; Xfce (see:
+                 ;; https://gitlab.xfce.org/xfce/xfce4-settings/-/issues/142).
+                 x-resize)
            %base-packages))
 
   (services
-   (append (list (service dicomd-service-type
+   (append (list (service nftables-service-type
+                          (nftables-configuration
+                           (ruleset (local-file "etc/nftables.conf"))))
+
+                 (service sddm-service-type (sddm-configuration
+                                             (auto-login-user "guest")
+                                             (auto-login-session "openbox")))
+
+                 (service dicomd-service-type
                           (dicomd-configuration
                            (aetitle "PSYDICOM")
-                           (output-directory "/var/dicom-store")
-                           (log-level "info")))
+                           (output-directory "/var/dicom-store")))
 
-                 (service slim-service-type
-                          (slim-configuration
-                           (auto-login? #t)
-                           (default-user "guest")
-                           (sessreg "openbox")
-                           (xorg-configuration
-                            (xorg-configuration
-                             (keyboard-layout keyboard-layout)))))
+                 (service guix-home-service-type
+                          `(("guest" ,guest-home)))
 
                  ;; Uncomment the line below to add an SSH server.
                  ;;(service openssh-service-type)
 
-                 ;; Add the nftables service with the custom ruleset
-                 (service nftables-service-type
-                          (nftables-configuration
-                           (ruleset %dicom-nftables-ruleset)))
+                 ;; Add support for the SPICE protocol, which enables dynamic
+                 ;; resizing of the guest screen resolution, clipboard
+                 ;; integration with the host, etc.
+                 ;; (service spice-vdagent-service-type)
 
                  ;; Use the DHCP client service rather than NetworkManager.
                  (service dhcp-client-service-type))
