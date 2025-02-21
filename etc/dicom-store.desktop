@@ -1,8 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=DICOM Store
-Comment=Open DICOM Store Directory
-Exec=thunar /var/dicom-store
-Icon=folder
-Terminal=false

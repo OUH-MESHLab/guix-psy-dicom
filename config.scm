@@ -16,28 +16,46 @@
 
 (use-service-modules desktop mcron networking spice ssh xorg sddm)
 (use-package-modules bootloaders fonts openbox xfce lxde image-processing
-                     package-management xdisorg xorg)
+                     kde-frameworks package-management xdisorg xorg wm)
+
+(define fluxbox-init
+  (local-file "etc/fluxbox/init"))
+
+(define fluxbox-keys
+  (local-file "etc/fluxbox/keys"))
+
+(define fluxbox-menu
+  (local-file "etc/fluxbox/menu"))
+
+(define fluxbox-startup
+  (local-file "etc/fluxbox/startup"))
+
+(define ideskrc
+  (local-file "etc/idesk/ideskrc"))
+
+(define idesk-icon-lnk
+  (local-file "etc/idesk/DICOMStore.lnk"))
 
 (define dicom-store-desktop
   (local-file "etc/misc/dicom-store.desktop"))
 
-(define pcmanfm-config
-  (local-file "etc/pcmanfm.conf"))
+;; (define pcmanfm-config
+;;   (local-file "etc/pcmanfm.conf"))
 
-(define libfm-config
-  (local-file "etc/libfm.conf"))
+;; (define libfm-config
+;;   (local-file "etc/libfm.conf"))
 
 (define nftables-config
   (local-file "etc/misc/nftables.conf"))
 
-(define rc-xml
-  (local-file "etc/openbox/rc.xml"))
+;; (define rc-xml
+;;   (local-file "etc/openbox/rc.xml"))
 
-(define menu-xml
-  (local-file "etc/openbox/menu.xml"))
+;; (define menu-xml
+;;   (local-file "etc/openbox/menu.xml"))
 
-(define autostart-script
-  (local-file "etc/openbox/autostart"))
+;; (define autostart-script
+;;   (local-file "etc/openbox/autostart"))
 
 (define guest-home
   (home-environment
@@ -45,15 +63,15 @@
      (cons*
       (service
        home-xdg-configuration-files-service-type
-       `(
-         ;; ("openbox/rc.xml" ,rc-xml)
-         ;; ("openbox/menu.xml" ,menu-xml)
-         ("openbox/autostart" ,autostart-script)
-         ("libfm/libfm.conf" ,libfm-config)
-         ("pcmanfm/default/pcmanfm.conf" ,pcmanfm-config)))
+       `())
       (service
        home-files-service-type
-       `(("Desktop/dicom-store.desktop" ,(local-file "etc/dicom-store.desktop"))))
+       `((".fluxbox/init" ,fluxbox-init)
+         (".fluxbox/keys" ,fluxbox-keys)
+         (".fluxbox/startup" ,fluxbox-startup)
+         (".idesktop/DICOMStore.lnk" ,idesk-icon-lnk)
+         (".ideskrc" ,ideskrc)
+         ("Desktop/dicom-store.desktop" ,(local-file "etc/dicom-store.desktop"))))
       %base-home-services))))
 
 (define vm-image-motd (plain-file "motd" "
@@ -114,15 +132,12 @@ root ALL=(ALL) ALL
   (packages
    (append (list dcmtk
                  font-bitstream-vera
-                 pcmanfm
-                 openbox
+                 fluxbox
+                 idesk
                  xfce4-terminal
                  thunar
-                 systole-wallpapers
-                 ;; Auto-started script providing SPICE dynamic resizing for
-                 ;; Xfce (see:
-                 ;; https://gitlab.xfce.org/xfce/xfce4-settings/-/issues/142).
-                 x-resize)
+                 oxygen-icons
+                 systole-wallpapers)
            %base-packages))
 
   (services
@@ -132,7 +147,7 @@ root ALL=(ALL) ALL
 
                  (service sddm-service-type (sddm-configuration
                                              (auto-login-user "guest")
-                                             (auto-login-session "openbox")))
+                                             (auto-login-session "fluxbox")))
 
                  (service dicomd-service-type
                           (dicomd-configuration
