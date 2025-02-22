@@ -16,7 +16,11 @@
 
 (use-service-modules desktop mcron networking spice ssh xorg sddm)
 (use-package-modules bootloaders fonts openbox xfce lxde image-processing
-                     kde-frameworks package-management xdisorg xorg wm)
+                     kde-frameworks package-management xdisorg xorg wm conky
+                     image-viewers)
+
+(define conkyrc
+  (local-file "etc/conky/conky.conf"))
 
 (define fluxbox-init
   (local-file "etc/fluxbox/init"))
@@ -36,26 +40,8 @@
 (define idesk-icon-lnk
   (local-file "etc/idesk/DICOMStore.lnk"))
 
-(define dicom-store-desktop
-  (local-file "etc/misc/dicom-store.desktop"))
-
-;; (define pcmanfm-config
-;;   (local-file "etc/pcmanfm.conf"))
-
-;; (define libfm-config
-;;   (local-file "etc/libfm.conf"))
-
 (define nftables-config
   (local-file "etc/misc/nftables.conf"))
-
-;; (define rc-xml
-;;   (local-file "etc/openbox/rc.xml"))
-
-;; (define menu-xml
-;;   (local-file "etc/openbox/menu.xml"))
-
-;; (define autostart-script
-;;   (local-file "etc/openbox/autostart"))
 
 (define guest-home
   (home-environment
@@ -70,8 +56,9 @@
          (".fluxbox/keys" ,fluxbox-keys)
          (".fluxbox/startup" ,fluxbox-startup)
          (".idesktop/DICOMStore.lnk" ,idesk-icon-lnk)
+         (".conkyrc" ,conkyrc)
          (".ideskrc" ,ideskrc)
-         ("Desktop/dicom-store.desktop" ,(local-file "etc/dicom-store.desktop"))))
+         ))
       %base-home-services))))
 
 (define vm-image-motd (plain-file "motd" "
@@ -90,7 +77,7 @@ accounts.\x1b[0m
 "))
 
 (operating-system
-  (host-name "gnu")
+  (host-name "PSYDICOM")
   (timezone "Etc/UTC")
   (locale "en_US.utf8")
   (keyboard-layout (keyboard-layout "us" "altgr-intl"))
@@ -130,14 +117,17 @@ root ALL=(ALL) ALL
 %wheel ALL=NOPASSWD: ALL\n"))
 
   (packages
-   (append (list dcmtk
-                 font-bitstream-vera
+   (append (list conky
+                 dcmtk
+                 feh
                  fluxbox
+                 font-bitstream-vera
+                 font-dejavu
                  idesk
-                 xfce4-terminal
-                 thunar
                  oxygen-icons
-                 systole-wallpapers)
+                 systole-wallpapers
+                 thunar
+                 xfce4-terminal)
            %base-packages))
 
   (services
