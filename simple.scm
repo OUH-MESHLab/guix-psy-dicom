@@ -3,63 +3,12 @@
 ;; Modify it as you see fit and instantiate the changes by running:
 ;;
 ;;   guix system reconfigure /etc/config.scm
+;;
 
-(use-modules (gnu)
-             (gnu home)
-             (gnu home services)
-             (gnu services guix)
-             (guix-systole services dicomd-service)
-             (guix-systole packages wallpapers)
-             (guix-systole artwork)
-             (guix)
-             (srfi srfi-1))
-
+(use-modules (gnu) (guix) (srfi srfi-1))
 (use-service-modules desktop mcron networking spice ssh xorg sddm)
-(use-package-modules bootloaders fonts openbox xfce lxde image-processing
-                     kde-frameworks package-management xdisorg xorg wm conky
-                     image-viewers)
-
-(define conkyrc
-  (local-file "etc/conky/conky.conf"))
-
-(define fluxbox-init
-  (local-file "etc/fluxbox/init"))
-
-(define fluxbox-keys
-  (local-file "etc/fluxbox/keys"))
-
-(define fluxbox-menu
-  (local-file "etc/fluxbox/menu"))
-
-(define fluxbox-startup
-  (local-file "etc/fluxbox/startup"))
-
-(define ideskrc
-  (local-file "etc/idesk/ideskrc"))
-
-(define idesk-icon-lnk
-  (local-file "etc/idesk/DICOMStore.lnk"))
-
-(define nftables-config
-  (local-file "etc/misc/nftables.conf"))
-
-(define guest-home
-  (home-environment
-    (services
-     (cons*
-      (service
-       home-xdg-configuration-files-service-type
-       `())
-      (service
-       home-files-service-type
-       `((".fluxbox/init" ,fluxbox-init)
-         (".fluxbox/keys" ,fluxbox-keys)
-         (".fluxbox/startup" ,fluxbox-startup)
-         (".idesktop/DICOMStore.lnk" ,idesk-icon-lnk)
-         (".conkyrc" ,conkyrc)
-         (".ideskrc" ,ideskrc)
-         ))
-      %base-home-services))))
+(use-package-modules bootloaders fonts
+                     package-management xdisorg xorg)
 
 (define vm-image-motd (plain-file "motd" "
 \x1b[1;37mThis is the GNU system.  Welcome!\x1b[0m
@@ -77,7 +26,7 @@ accounts.\x1b[0m
 "))
 
 (operating-system
-  (host-name "PSYDICOM")
+  (host-name "gnu")
   (timezone "Etc/UTC")
   (locale "en_US.utf8")
   (keyboard-layout (keyboard-layout "us" "altgr-intl"))
@@ -106,8 +55,7 @@ accounts.\x1b[0m
                 (comment "GNU Guix Live")
                 (password "")           ;no password
                 (group "users")
-                (uid "1030")
-                (supplementary-groups '("wheel" "netdev" "dicom"
+                (supplementary-groups '("wheel" "netdev"
                                         "audio" "video")))
                %base-user-accounts))
 
@@ -118,36 +66,28 @@ root ALL=(ALL) ALL
 %wheel ALL=NOPASSWD: ALL\n"))
 
   (packages
-   (append (list
-                conky
-                 dcmtk
-                 feh
-                 fluxbox
-                 font-bitstream-vera
-                 font-dejavu
-                 idesk
-                 oxygen-icons
-                 systole-wallpapers
-                 thunar
-                 xfce4-terminal)
+   (append (list font-bitstream-vera
+                 ;; Auto-started script providing SPICE dynamic resizing for
+                 ;; Xfce (see:
+                 ;; https://gitlab.xfce.org/xfce/xfce4-settings/-/issues/142).
+                 x-resize)
            %base-packages))
 
   (services
-   (append (list (service nftables-service-type
-                          (nftables-configuration
-                           (ruleset (local-file "etc/nftables.conf"))))
+   (append (list (service xfce-desktop-service-type)
 
-                 (service sddm-service-type (sddm-configuration
-                                             (auto-login-user "guest")
-                                             (auto-login-session "fluxbox")))
-
-                 (service dicomd-service-type
-                          (dicomd-configuration
-                           (aetitle "PSYDICOM")
-                           (output-directory "/var/dicom-store")))
-
-                 (service guix-home-service-type
-                          `(("guest" ,guest-home)))
+                 ;; Choose SLiM, which is lighter than the default GDM.
+                 (service slim-service-type
+                          (slim-configuration
+                           (auto-login? #t)
+                           (default-user "guest")
+                           (xorg-configuration
+                            (xorg-configuration
+                             ;; The QXL virtual GPU driver is added to provide
+                             ;; a better SPICE experience.
+                             (modules (cons xf86-video-qxl
+                                            %default-xorg-modules))
+                             (keyboard-layout keyboard-layout)))))
 
                  ;; Uncomment the line below to add an SSH server.
                  ;;(service openssh-service-type)
@@ -155,7 +95,7 @@ root ALL=(ALL) ALL
                  ;; Add support for the SPICE protocol, which enables dynamic
                  ;; resizing of the guest screen resolution, clipboard
                  ;; integration with the host, etc.
-                 ;; (service spice-vdagent-service-type)
+                 (service spice-vdagent-service-type)
 
                  ;; Use the DHCP client service rather than NetworkManager.
                  (service dhcp-client-service-type))

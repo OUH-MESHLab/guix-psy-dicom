@@ -1,9 +1,0 @@
-#! /bin/sh
-
-fbpid=$!
-idesk &
-conky &
-xfce4-terminal &
-exec fluxbox -log ~/.fluxbox/log &
-feh --bg-scale /run/current-system/profile/share/backgrounds/systole/backgrounds/Systole_Magnet_base.png
-wait $fbpid
